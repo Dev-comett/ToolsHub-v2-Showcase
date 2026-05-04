@@ -4,21 +4,22 @@
 
 # 🛠 ToolsHub
 
-### An all-in-one smart utility dashboard for the modern web.
+### Production-grade multi-API dashboard — built solo, shipped in days.
 
-_Weather · News · Web Scraping · Image · Document · Finance · AI — one place, one fast UI._
+_A case study in shipping a polished web product with **DevSecOps rigor** baked in from day one._
 
 <br/>
 
 [![Live Demo](https://img.shields.io/badge/▶_LIVE_DEMO-Open_App-ff9900?style=for-the-badge)](https://toolshub-eta.vercel.app/)
-[![Hire Me](https://img.shields.io/badge/💼_HIRE_ME-Book_a_Call-111?style=for-the-badge)](https://cal.eu/devansh)
+[![Hire Me](https://img.shields.io/badge/💼_HIRE_ME-Book_a_Call-111?style=for-the-badge)](https://cal.com/YOUR-CAL-SLUG)
 
 <br/>
 
 ![Next.js 14](https://img.shields.io/badge/Next.js_14-black?logo=next.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38bdf8?logo=tailwind-css&logoColor=white)
-![Deployed on Vercel](https://img.shields.io/badge/Vercel-black?logo=vercel)
+![AWS](https://img.shields.io/badge/AWS-232f3e?logo=amazon-aws&logoColor=white)
+![Vercel Edge](https://img.shields.io/badge/Vercel_Edge-black?logo=vercel)
 
 </div>
 
@@ -45,37 +46,74 @@ _Weather · News · Web Scraping · Image · Document · Finance · AI — one p
 
 ---
 
-## ✨ What it does
+## 🧠 Why this exists
 
-ToolsHub is a unified dashboard for the everyday web — so you never have to bounce between five tabs again.
+ToolsHub is a portfolio case study, not just a side project. It exists to demonstrate that I ship **product-grade web apps with the security, infrastructure, and reliability discipline most freelancers skip**.
 
-| | Module | What you can do |
-|---|---|---|
-| 🌡 | **Weather** | Real-time temperature, humidity & wind for any city in the world |
-| 📰 | **News** | Top headlines by keyword, refreshed live |
-| 🔍 | **Smart Search** | Query the web with auto **USD → INR** price conversion on results |
-| 🧹 | **URL Extractor** | Pull clean text content from any web page in one click |
-| 🖼 | **Image Toolbox** | Convert · compress · edit on the fly |
-| 🔗 | **URL Shortener** | Shorten links and view analytics |
-| 📈 | **Finance Tracker** | Trends, stocks, and quick analysis |
-| 📄 | **Document Toolbox** | Convert · split · merge PDFs |
-| 🤖 | **AI Toolbox** | Summarisation, chat, and more |
-| 🌗 | **Theme** | One-click light + dark, remembered across sessions |
-| 📱 | **Responsive** | Mobile-first, works on any device |
+Every architectural choice below was deliberate. None of it is "default Next.js." It's the same engineering bar I bring to client work.
 
 ---
 
-## 🧠 Built like a real product
+## 🏛 Architecture — one request, end to end
 
-Not a toy demo. Production-grade choices throughout:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Browser
+    participant E as Vercel Edge (Cache)
+    participant S as Next.js Server Route
+    participant V as URL Validator (SSRF guard)
+    participant API as Third-Party API
 
-- **🔒 Zero-leak API keys** — every external API call is proxied through a server-side handler. Browsers never see secrets.
-- **⚡ Edge-cached responses** — quick repeat loads, third-party quota-safe.
-- **🛡 SSRF-safe scraping** — URLs are scheme-validated before fetch (no `file://`, no internal probes).
-- **💱 Smart price detection** — automatic USD → INR conversion using cached live FX rates.
-- **🌗 Zero-flash theme switching** — pre-paint inline script applies the correct theme before React hydrates.
-- **🔤 Strict TypeScript end-to-end** — full type safety from component to API.
-- **🎨 Custom design system** — CSS-variable-driven theme tokens; every component is theme-aware automatically.
+    U->>E: GET /api/scrape?url=...
+    E-->>U: 🟢 Cache hit → return cached response
+    Note right of E: Cache miss path ⬇
+    E->>S: Forward request
+    S->>V: Validate URL (scheme, host, no internal IPs)
+    V-->>S: ❌ Reject file:// / 169.254.* / localhost
+    V-->>S: ✅ Pass — public http(s) only
+    S->>API: Fetch w/ secret key (server-side only)
+    API-->>S: Response
+    S-->>E: Sanitised payload + cache headers
+    E-->>U: Response (browser never sees keys)
+```
+
+**Key invariants enforced by this flow:**
+- API keys never reach the browser bundle.
+- Server-side URL validation blocks SSRF before any outbound fetch.
+- Edge cache layer protects third-party quotas and keeps repeat loads instant.
+
+---
+
+## 🛡 Production engineering details
+
+| Concern | Implementation |
+|---|---|
+| **API key isolation** | All third-party calls proxied through server routes. Zero secrets in client bundle. |
+| **SSRF protection** | URL scheme + host validation pipeline before every outbound fetch. Blocks `file://`, `gopher://`, internal RFC1918 ranges, link-local, `localhost`. |
+| **Rate-limit hygiene** | Edge-cached responses with TTL tuned per upstream API to stay under free-tier quotas. |
+| **Type safety** | Strict TypeScript end-to-end. API contracts typed at both server and client; no `any` escape hatches. |
+| **Theme without flash** | Pre-paint inline script applies stored theme before React hydrates. Zero FOUC on first load. |
+| **Design tokens** | Single source of truth via CSS variables; every component is theme-aware automatically. |
+| **Error boundaries** | Per-module error isolation — a failing news API doesn't take down weather. |
+
+---
+
+## ✨ What it does
+
+ToolsHub is a unified dashboard for the everyday web — one tab instead of five.
+
+| | Module | What you can do |
+|---|---|---|
+| 🌡 | **Weather** | Real-time temperature, humidity & wind for any city |
+| 📰 | **News** | Top headlines by keyword, refreshed live |
+| 🔍 | **Smart Search** | Web search with auto **USD → INR** conversion on prices |
+| 🧹 | **URL Extractor** | SSRF-safe text extraction from any public web page |
+| 🖼 | **Image Toolbox** | Convert, compress, edit on the fly |
+| 🔗 | **URL Shortener** | Shorten links with click analytics |
+| 📈 | **Finance Tracker** | Trends, stocks, quick analysis |
+| 📄 | **Document Toolbox** | Convert, split, merge PDFs |
+| 🤖 | **AI Toolbox** | Summarisation, chat, custom integrations |
 
 ---
 
@@ -83,11 +121,23 @@ Not a toy demo. Production-grade choices throughout:
 
 <div align="center">
 
-**Next.js 14 (App Router)** · **TypeScript** · **Tailwind CSS** · **Cheerio** · **Vercel Edge**
+**Next.js 14 (App Router)** · **TypeScript (strict)** · **Tailwind CSS** · **Cheerio** · **Vercel Edge**
 
 External APIs: Tomorrow.io · NewsAPI · SerpAPI · ExchangeRate-API
 
 </div>
+
+---
+
+## 🔭 What I'd do differently at scale
+
+Honest engineering notes — what would change if this had 100k DAU instead of being a portfolio piece:
+
+- **Move proxy layer to a dedicated API gateway** (AWS API Gateway + Lambda or self-hosted Kong) for finer rate-limit control per consumer.
+- **Replace edge cache with Redis + stale-while-revalidate** for cross-region consistency.
+- **Add structured logging + Prometheus metrics** on the proxy layer; pipe to Grafana for upstream-API SLO dashboards.
+- **CI/CD with security gates** — Trivy on container builds, Terrascan on IaC, SonarQube quality gate. (This is my day job.)
+- **Per-tenant API key vault** if multi-tenant — AWS Secrets Manager + IAM-scoped retrieval.
 
 ---
 
@@ -97,24 +147,32 @@ External APIs: Tomorrow.io · NewsAPI · SerpAPI · ExchangeRate-API
 
 <h3>Hi, I'm <b>Devansh Mishra</b>.</h3>
 
-<p>I build fast, polished web products end-to-end — design, frontend, backend, deployment.<br/>
-ToolsHub is one example of what I ship: <b>solo, in days, not months.</b></p>
+<p>I build <b>production-grade web products and the infrastructure they run on</b> — end to end, solo, in days not months.</p>
+
+<p>My edge isn't "I know Next.js." It's that I bring <b>DevOps and DevSecOps discipline</b> to product work that most freelancers ship without it.</p>
 
 </div>
 
-### 💡 What I can build for you
+### 💡 What I build for clients
 
-- 📊 **Dashboards & internal tools** — for your team or your customers
-- 🚀 **MVPs** — from idea → live product in 1–3 weeks
-- 🤖 **AI-powered apps** — chatbots, summarisers, custom integrations
-- 🌐 **Marketing sites & landing pages** — Next.js, fast, SEO-ready
-- 🛠 **Automations & integrations** — APIs, scrapers, data pipelines
+- 🛠 **Production-grade internal tools & admin dashboards** — Next.js + TypeScript + AWS, shipped in 1–3 weeks.
+- 🤖 **AI-augmented automation** — LLM-driven workflows, agentic pipelines, fault-tolerant orchestration (Temporal).
+- 🔒 **DevSecOps CI/CD pipelines** — GitHub Actions / Jenkins with Trivy, SonarQube, Terrascan, OWASP gates.
+- ☁ **Cloud infrastructure** — AWS (EKS, EC2, VPC, IAM), Terraform, Helm, ArgoCD GitOps.
+- 📊 **Observability stacks** — Prometheus + Grafana, structured logging, SLO dashboards.
+
+### ⚡ Why hire me vs. another freelancer
+
+- I ship products **and** the infra they run on — fewer vendors, fewer handoffs.
+- Security and CI/CD discipline included by default, not an upsell.
+- Work hours overlap **US Eastern evenings · UK/EU afternoons · UAE evenings**.
+- Fixed-price engagements available for well-scoped work.
 
 ### 📅 Let's talk
 
 | | |
 |---|---|
-| 📅 **Book a 15-min intro call** | [cal.eu/devansh](https://cal.eu/devansh) |
+| 📅 **Book a 15-min intro call** | [cal.com/YOUR-CAL-SLUG](https://cal.com/YOUR-CAL-SLUG) |
 | 💼 **LinkedIn** | [linkedin.com/in/dev-ice](https://www.linkedin.com/in/dev-ice) |
 | 🐙 **GitHub** | [github.com/dev-comett](https://github.com/dev-comett) |
 
@@ -124,8 +182,8 @@ ToolsHub is one example of what I ship: <b>solo, in days, not months.</b></p>
 
 ### Like what you see?
 
-**[▶ Open Live Demo](https://toolshub-eta.vercel.app/)** &nbsp;·&nbsp; **[📅 Book a Call](https://cal.eu/devansh)**
+**[▶ Open Live Demo](https://toolshub-eta.vercel.app/)** &nbsp;·&nbsp; **[📅 Book a Call](https://cal.com/YOUR-CAL-SLUG)**
 
-<sub>_Available for freelance projects · Remote-friendly · Fast turnaround_</sub>
+<sub>_Available for freelance engagements · Remote · Fixed-price or retainer_</sub>
 
 </div>
